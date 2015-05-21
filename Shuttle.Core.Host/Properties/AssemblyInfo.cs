@@ -17,10 +17,10 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Shuttle.Core.Host for .NET Framework 4.5.1")]
 #endif
 
-[assembly: AssemblyVersion("3.1.6.0")]
-[assembly: AssemblyCopyright("Copyright © Eben Roux 2010-2014")]
+[assembly: AssemblyVersion("3.1.7.0")]
+[assembly: AssemblyCopyright("Copyright © Eben Roux 2010-2015")]
 [assembly: AssemblyProduct("Shuttle.Core")]
 [assembly: AssemblyCompany("Shuttle")]
 [assembly: AssemblyConfiguration("Release")]
-[assembly: AssemblyInformationalVersion("3.1.6")]
+[assembly: AssemblyInformationalVersion("3.1.7")]
 [assembly: ComVisible(false)]
