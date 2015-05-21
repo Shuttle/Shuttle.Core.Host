@@ -1,7 +1,7 @@
 ﻿Shuttle Service Bus Host Service
 
 USAGE:
-	Shuttle.ESB.Host.exe 
+	Shuttle.Core.Host.exe 
 		[/install [/serviceName]]	
 			- install the service
 			
@@ -33,7 +33,7 @@ USAGE:
 OVERVIEW:
 
 - IHost -
-If no /hostType is specified the folder the Shuttle.ESB.Host.exe is in will be scanned for the class implementing IHost.
+If no /hostType is specified the folder the Shuttle.Core.Host.exe is in will be scanned for the class implementing IHost.
 Should no class, or more than 1 class, be located an exception will be raised.
 
 - Service Name -
@@ -50,17 +50,17 @@ description defaults to a generic service bus host description.
 If you set the /serviceName and/or /instance during installation you will need 
 to specify them when uninstalling them as well, e.g.:
 
-	Shuttle.ESB.Host.exe 
+	Shuttle.Core.Host.exe 
 		/uninstall 
 		/serviceName:"Shuttle.Application.Server" 
 		/instance:"Instance5"
 	
 - EXAMPLE -
-Shuttle.ESB.Host.exe 
+Shuttle.Core.Host.exe 
 	/install 
 	/serviceName:"Shuttle.Application.Server" 
 	/displayName:"Shuttle server for the application"
 	/description:"Service to handle messages relating to the application" 
 	/hostType:"QualifiedNamespace.Host, AssemblyName"
-	/username:"zaeagle\hostuser"
+	/username:"domain\hostuser"
 	/password:"p@ssw0rd!"

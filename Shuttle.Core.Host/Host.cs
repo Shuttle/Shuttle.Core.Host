@@ -285,7 +285,7 @@ namespace Shuttle.Core.Host
 
 			if (string.IsNullOrEmpty(description))
 			{
-				description = string.Format("Shuttle.ESB.Host for '{0}'.", displayName);
+				description = string.Format("Shuttle.Core.Host for '{0}'.", displayName);
 			}
 
 			return new HostServiceConfiguration(host)
