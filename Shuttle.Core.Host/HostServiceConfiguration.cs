@@ -8,8 +8,8 @@ namespace Shuttle.Core.Host
         }
 
         public IHost Host { get; private set; }
-
-        public string ServiceName { get; set; }
+	    public string ConfigurationFileName { get; set; }
+	    public string ServiceName { get; set; }
         public string DisplayName { get; set; }
         public string Description { get; set; }
         public string Instance { get; set; }
