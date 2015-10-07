@@ -6,32 +6,37 @@ namespace Shuttle.Core.Host
 {
     public class HostService : ServiceBase
     {
-        private readonly IHostServiceConfiguration configuration;
+	    private readonly IHost _host;
+	    private readonly IHostServiceConfiguration _hostServiceConfiguration;
 
-        public HostService(IHostServiceConfiguration configuration)
+        public HostService(IHost host, IHostServiceConfiguration hostServiceConfiguration)
         {
-            this.configuration = configuration;
+			Guard.AgainstNull(host, "host");
+			Guard.AgainstNull(hostServiceConfiguration, "hostServiceConfiguration");
 
-            ServiceName = configuration.ServiceName;
+	        _host = host;
+	        _hostServiceConfiguration = hostServiceConfiguration;
+
+            ServiceName = hostServiceConfiguration.ServiceName;
         }
 
         protected override void OnStart(string[] args)
         {
-            configuration.Host.Start();
+            _host.Start();
 
-            Log.For(this).Information(string.Format("'{0}' service has started.", configuration.DisplayName));
+            Log.For(this).Information(string.Format("'{0}' service has started.", _hostServiceConfiguration.DisplayName));
         }
 
         protected override void OnStop()
         {
-            var disposable = configuration.Host as IDisposable;
+            var disposable = _host as IDisposable;
 
             if (disposable != null)
             {
                 disposable.Dispose();
             }
 
-            Log.For(this).Information(string.Format("'{0}' service has stopped.", configuration.DisplayName));
+            Log.For(this).Information(string.Format("'{0}' service has stopped.", _hostServiceConfiguration.DisplayName));
         }
     }
 }

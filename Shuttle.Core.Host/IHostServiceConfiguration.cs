@@ -2,8 +2,8 @@ namespace Shuttle.Core.Host
 {
     public interface IHostServiceConfiguration
     {
-        IHost Host { get; }
-	    string ConfigurationFileName { get; set; }
+	    string HostTypeAssemblyQualifiedName();
+		string ConfigurationFileName { get; set; }
         string ServiceName { get; set; }
         string DisplayName { get; set; }
         string Description { get; set; }

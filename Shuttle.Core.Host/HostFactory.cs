@@ -22,7 +22,7 @@ namespace Shuttle.Core.Host
 			return (IHost) Activator.CreateInstance(hostType);
 		}
 
-		private Type GetHostType(Arguments arguments)
+		public Type GetHostType(Arguments arguments)
 		{
 			var hostType = arguments.Get("HostType", string.Empty);
 
@@ -34,7 +34,7 @@ namespace Shuttle.Core.Host
 				{
 					throw new ConfigurationErrorsException(
 						string.Format(
-							"Could not load type '{0}' specified for the 'serviceBusHostType' command line argument.",
+							"Could not load type '{0}' specified for the 'HostType' command line argument.",
 							hostType));
 				}
 

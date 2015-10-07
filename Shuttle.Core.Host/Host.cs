@@ -14,99 +14,66 @@ namespace Shuttle.Core.Host
 {
 	public class Host
 	{
-		protected internal static IHostServiceConfiguration ServiceConfiguration;
-
 		private bool runServiceException;
 
-		public void RunService(IHost host, Arguments arguments)
+		public void RunService(IHost host, IHostServiceConfiguration hostServiceConfiguration)
 		{
 			Guard.AgainstNull(host, "host");
+			Guard.AgainstNull(hostServiceConfiguration, "hostServiceConfiguration");
 
 			try
 			{
-				ServiceConfiguration = GetHostServiceConfiguration(host, arguments);
+				var configurationFile = GetHostConfigurationFile(host, hostServiceConfiguration);
 
-				if (ServiceConfiguration == null)
+				if (!File.Exists(configurationFile))
 				{
-					return;
+					throw new ApplicationException(string.Format("Cannot find host configuration file '{0}'", configurationFile));
 				}
 
-				var install = arguments.Get("install", string.Empty);
-				var uninstall = arguments.Get("uninstall", string.Empty);
+				AppDomain.CurrentDomain.SetData("APP_CONFIG_FILE", configurationFile);
 
-				if (string.IsNullOrEmpty(install) && string.IsNullOrEmpty(uninstall))
+				var state = typeof (ConfigurationManager).GetField("s_initState", BindingFlags.NonPublic | BindingFlags.Static);
+
+				if (state == null)
 				{
-					var configurationFile = GetHostConfigurationFile(host, ServiceConfiguration);
-
-					if (!File.Exists(configurationFile))
-					{
-						throw new ApplicationException(string.Format("Cannot find host configuration file '{0}'", configurationFile));
-					}
-
-					AppDomain.CurrentDomain.SetData("APP_CONFIG_FILE", configurationFile);
-
-					var state = typeof (ConfigurationManager).GetField("s_initState", BindingFlags.NonPublic | BindingFlags.Static);
-
-					if (state == null)
-					{
-						throw new ApplicationException(string.Format("Could not obtain 's_initState' from ConfigurationManager."));
-					}
-
-					state.SetValue(null, 0);
-
-					var system = typeof (ConfigurationManager).GetField("s_configSystem", BindingFlags.NonPublic | BindingFlags.Static);
-
-					if (system == null)
-					{
-						throw new ApplicationException(string.Format("Could not obtain 's_configSystem' from ConfigurationManager."));
-					}
-
-					system.SetValue(null, null);
-
-					var current = typeof (ConfigurationManager)
-						.Assembly.GetTypes().First(x => x.FullName == "System.Configuration.ClientConfigPaths")
-						.GetField("s_current", BindingFlags.NonPublic | BindingFlags.Static);
-
-					if (current == null)
-					{
-						throw new ApplicationException(string.Format("Could not obtain 's_current' from System.Configuration.ClientConfigPaths."));
-					}
-
-					current.SetValue(null, null);
+					throw new ApplicationException(string.Format("Could not obtain 's_initState' from ConfigurationManager."));
 				}
+
+				state.SetValue(null, 0);
+
+				var system = typeof (ConfigurationManager).GetField("s_configSystem", BindingFlags.NonPublic | BindingFlags.Static);
+
+				if (system == null)
+				{
+					throw new ApplicationException(string.Format("Could not obtain 's_configSystem' from ConfigurationManager."));
+				}
+
+				system.SetValue(null, null);
+
+				var current = typeof (ConfigurationManager)
+					.Assembly.GetTypes().First(x => x.FullName == "System.Configuration.ClientConfigPaths")
+					.GetField("s_current", BindingFlags.NonPublic | BindingFlags.Static);
+
+				if (current == null)
+				{
+					throw new ApplicationException(
+						string.Format("Could not obtain 's_current' from System.Configuration.ClientConfigPaths."));
+				}
+
+				current.SetValue(null, null);
 
 				if (!Environment.UserInteractive)
 				{
 					ServiceBase.Run(new ServiceBase[]
 					{
-						new HostService(ServiceConfiguration)
+						new HostService(host, hostServiceConfiguration)
 					});
 				}
 				else
 				{
 					Console.CursorVisible = false;
 
-					if (string.IsNullOrEmpty(install) && string.IsNullOrEmpty(uninstall))
-					{
-						ConsoleService();
-
-						return;
-					}
-
-					if (!string.IsNullOrEmpty(install) && !string.IsNullOrEmpty(uninstall))
-					{
-						throw new ConfigurationErrorsException("Cannot specify /install and /uninstall together.");
-					}
-
-					if (!string.IsNullOrEmpty(install))
-					{
-						Install(true, arguments, ServiceConfiguration);
-					}
-
-					if (!string.IsNullOrEmpty(uninstall))
-					{
-						Install(false, arguments, ServiceConfiguration);
-					}
+					ConsoleService(host, hostServiceConfiguration);
 				}
 			}
 			catch (Exception ex)
@@ -129,13 +96,16 @@ namespace Shuttle.Core.Host
 			}
 		}
 
-		private void ConsoleService()
+		private void ConsoleService(IHost host, IHostServiceConfiguration hostServiceConfiguration)
 		{
-			if (ServiceController.GetServices().Any(s => s.ServiceName == ServiceConfiguration.ServiceName))
+			Guard.AgainstNull(host, "host");
+			Guard.AgainstNull(hostServiceConfiguration, "hostServiceConfiguration");
+
+			if (ServiceController.GetServices().Any(s => s.ServiceName == hostServiceConfiguration.ServiceName))
 			{
 				ColoredConsole.WriteLine(ConsoleColor.Yellow,
 					"WARNING: Windows service '{0}' is running.  The display name is '{1}'.",
-					ServiceConfiguration.ServiceName, ServiceConfiguration.DisplayName);
+					hostServiceConfiguration.ServiceName, hostServiceConfiguration.DisplayName);
 				Console.WriteLine();
 			}
 
@@ -159,18 +129,18 @@ namespace Shuttle.Core.Host
 				e.Cancel = true;
 			});
 
-			ServiceConfiguration.Host.Start();
+			host.Start();
 
 			Console.WriteLine();
 			ColoredConsole.WriteLine(ConsoleColor.Green, "Shuttle.Core.Host started for '{0}'.",
-				ServiceConfiguration.ServiceName);
+				hostServiceConfiguration.ServiceName);
 			Console.WriteLine();
 			ColoredConsole.WriteLine(ConsoleColor.DarkYellow, "[press ctrl+c to stop]");
 			Console.WriteLine();
 
 			WaitHandle.WaitAny(waitHandles);
 
-			var disposable = ServiceConfiguration.Host as IDisposable;
+			var disposable = host as IDisposable;
 
 			if (disposable != null)
 			{
@@ -178,22 +148,20 @@ namespace Shuttle.Core.Host
 			}
 		}
 
-		private static string GetHostConfigurationFile(IHost host, IHostServiceConfiguration configuration)
+		private static string GetHostConfigurationFile(IHost host, IHostServiceConfiguration hostServiceConfiguration)
 		{
 			return Path.Combine(
 				AppDomain.CurrentDomain.BaseDirectory,
-				string.IsNullOrEmpty(configuration.ConfigurationFileName)
+				string.IsNullOrEmpty(hostServiceConfiguration.ConfigurationFileName)
 					? string.Concat(host.GetType().Assembly.ManifestModule.Name, ".config")
-					: configuration.ConfigurationFileName);
+					: hostServiceConfiguration.ConfigurationFileName);
 		}
 
-		private static void Install(bool install, Arguments arguments, IHostServiceConfiguration configuration)
+		public static void Install(IHostServiceConfiguration hostServiceConfiguration)
 		{
-			ColoredConsole.WriteLine(ConsoleColor.Green, "{0} service as '{1}'.", install
-				? "Installing"
-				: "Uninstalling", configuration.ServiceName);
+			ColoredConsole.WriteLine(ConsoleColor.Green, "Installing service '{0}'.", hostServiceConfiguration.ServiceName);
 
-			using (var installer = new AssemblyInstaller(typeof (Host).Assembly, arguments.CommandLine))
+			using (var installer = new AssemblyInstaller(typeof (Host).Assembly, null))
 			{
 				IDictionary state = new Hashtable();
 
@@ -201,47 +169,39 @@ namespace Shuttle.Core.Host
 
 				try
 				{
-					if (install)
+					installer.Install(state);
+					installer.Commit(state);
+
+					var ok = true;
+
+					var system = Registry.LocalMachine.OpenSubKey("System");
+
+					if (system != null)
 					{
-						installer.Install(state);
-						installer.Commit(state);
+						var currentControlSet = system.OpenSubKey("CurrentControlSet");
 
-						var ok = true;
-
-						var system = Registry.LocalMachine.OpenSubKey("System");
-
-						if (system != null)
+						if (currentControlSet != null)
 						{
-							var currentControlSet = system.OpenSubKey("CurrentControlSet");
+							var services = currentControlSet.OpenSubKey("Services");
 
-							if (currentControlSet != null)
+							if (services != null)
 							{
-								var services = currentControlSet.OpenSubKey("Services");
+								var service = services.OpenSubKey(hostServiceConfiguration.ServiceName, true);
 
-								if (services != null)
+								if (service != null)
 								{
-									var service = services.OpenSubKey(configuration.ServiceName, true);
-
-									if (service != null)
-									{
-										service.SetValue("Description", configuration.Description);
-										service.SetValue("ImagePath",
-											string.Format("{0} /serviceName:{1}{2}{3}",
-												service.GetValue("ImagePath"),
-												configuration.ServiceName,
-												string.IsNullOrEmpty(configuration.Instance)
-													? string.Empty
-													: string.Format(" /instance:{0}",
-														ServiceConfiguration.Instance),
-												string.IsNullOrEmpty(configuration.ConfigurationFileName)
-													? string.Empty
-													: string.Format(" /configurationFileName:{0}",
-														ServiceConfiguration.ConfigurationFileName)));
-									}
-									else
-									{
-										ok = false;
-									}
+									service.SetValue("Description", hostServiceConfiguration.Description);
+									service.SetValue("ImagePath",
+										string.Format("{0} /serviceName:\"{1}\"{2}{3}{4}",
+											service.GetValue("ImagePath"),
+											hostServiceConfiguration.ServiceName,
+											string.IsNullOrEmpty(hostServiceConfiguration.Instance)
+												? string.Empty
+												: string.Format(" /instance:\"{0}\"", hostServiceConfiguration.Instance),
+											string.IsNullOrEmpty(hostServiceConfiguration.ConfigurationFileName)
+												? string.Empty
+												: string.Format(" /configurationFileName:\"{0}\"", hostServiceConfiguration.ConfigurationFileName),
+											string.Format(" /hostType:\"{0}\"", hostServiceConfiguration.HostTypeAssemblyQualifiedName())));
 								}
 								else
 								{
@@ -257,79 +217,47 @@ namespace Shuttle.Core.Host
 						{
 							ok = false;
 						}
-
-						if (!ok)
-						{
-							throw new ConfigurationErrorsException("Could not set registry values for the service.");
-						}
 					}
 					else
 					{
-						installer.Uninstall(state);
+						ok = false;
+					}
+
+					if (!ok)
+					{
+						throw new ConfigurationErrorsException("Could not set registry values for the service.");
 					}
 				}
 				catch
 				{
-					try
-					{
-						installer.Rollback(state);
-					}
-					catch
-					{
-					}
+					installer.Rollback(state);
 
 					throw;
 				}
 			}
 		}
 
-		private static IHostServiceConfiguration GetHostServiceConfiguration(IHost host, Arguments arguments)
+		public static void Uninstall(IHostServiceConfiguration hostServiceConfiguration)
 		{
-			var serviceName = arguments.Get("serviceName", string.Empty);
-			var instance = arguments.Get("instance", string.Empty);
+			ColoredConsole.WriteLine(ConsoleColor.Green, "Uninstalling service '{0}'.", hostServiceConfiguration.ServiceName);
 
-			if (string.IsNullOrEmpty(serviceName))
+			using (var installer = new AssemblyInstaller(typeof (Host).Assembly, null))
 			{
-				serviceName = host.GetType().FullName;
+				IDictionary state = new Hashtable();
+
+				installer.UseNewContext = true;
+
+				try
+				{
+					installer.Uninstall(state);
+				}
+				catch
+				{
+					installer.Rollback(state);
+
+					throw;
+				}
 			}
-
-			var displayName = arguments.Get("displayName", string.Empty);
-
-			if (string.IsNullOrEmpty(displayName))
-			{
-				displayName = GetDefaultDisplayName(serviceName, host);
-			}
-
-			if (!string.IsNullOrEmpty(instance))
-			{
-				serviceName = string.Format("{0}${1}", serviceName, instance);
-			}
-
-			var description = arguments.Get("description", string.Empty);
-
-			if (string.IsNullOrEmpty(description))
-			{
-				description = string.Format("Shuttle.Core.Host for '{0}'.", displayName);
-			}
-
-			var configurationFileName = arguments.Get("configurationFileName", string.Empty);
-
-			return new HostServiceConfiguration(host)
-			{
-				Instance = instance,
-				ConfigurationFileName = configurationFileName,
-				ServiceName = serviceName,
-				DisplayName = displayName,
-				Description = description,
-				UserName = arguments.Get("username", string.Empty),
-				Password = arguments.Get("password", string.Empty),
-				StartManually = arguments.Get("startManually", false)
-			};
-		}
-
-		public static string GetDefaultDisplayName(string serviceName, object hostTypeInstance)
-		{
-			return string.Format("{0} ({1})", serviceName, hostTypeInstance.GetType().Assembly.GetName().Version);
 		}
 	}
 }

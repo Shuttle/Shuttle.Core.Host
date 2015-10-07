@@ -7,17 +7,24 @@ namespace Shuttle.Core.Host
     [RunInstaller(true)]
     public class HostServiceInstaller : Installer
     {
+	    private static IHostServiceConfiguration _hostServiceConfiguration;
+
         public HostServiceInstaller()
         {
-            var processInstaller = new ServiceProcessInstaller();
+	        if (_hostServiceConfiguration == null)
+	        {
+				throw new InstallException("No host service configuration has been set.  Cannot install.");
+	        }
 
-            if (!string.IsNullOrEmpty(Host.ServiceConfiguration.UserName)
+	        var processInstaller = new ServiceProcessInstaller();
+
+			if (!string.IsNullOrEmpty(_hostServiceConfiguration.UserName)
                 &&
-                !string.IsNullOrEmpty(Host.ServiceConfiguration.Password))
+                !string.IsNullOrEmpty(_hostServiceConfiguration.Password))
             {
                 processInstaller.Account = ServiceAccount.User;
-                processInstaller.Username = Host.ServiceConfiguration.UserName;
-                processInstaller.Password = Host.ServiceConfiguration.Password;
+                processInstaller.Username = _hostServiceConfiguration.UserName;
+                processInstaller.Password = _hostServiceConfiguration.Password;
             }
             else
             {
@@ -26,10 +33,10 @@ namespace Shuttle.Core.Host
 
             var installer = new ServiceInstaller
                             {
-                                DisplayName = Host.ServiceConfiguration.DisplayName,
-                                ServiceName = Host.ServiceConfiguration.ServiceName,
-                                Description = Host.ServiceConfiguration.Description,
-                                StartType = Host.ServiceConfiguration.StartManually
+                                DisplayName = _hostServiceConfiguration.DisplayName,
+                                ServiceName = _hostServiceConfiguration.ServiceName,
+                                Description = _hostServiceConfiguration.Description,
+                                StartType = _hostServiceConfiguration.StartManually
                                                 ? ServiceStartMode.Manual
                                                 : ServiceStartMode.Automatic
                             };
@@ -37,5 +44,10 @@ namespace Shuttle.Core.Host
             Installers.Add(processInstaller);
             Installers.Add(installer);
         }
+
+	    public static void Assign(IHostServiceConfiguration hostServiceConfiguration)
+	    {
+		    _hostServiceConfiguration = hostServiceConfiguration;
+	    }
     }
 }
