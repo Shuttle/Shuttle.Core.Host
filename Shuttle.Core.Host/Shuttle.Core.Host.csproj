@@ -65,20 +65,21 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArgumentsExtensions.cs" />
+    <Compile Include="HostServiceConfiguration.cs" />
+    <Compile Include="ServiceInstallerConfiguration.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="HostFactory.cs" />
     <Compile Include="HostService.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="HostServiceConfiguration.cs" />
     <Compile Include="HostServiceInstaller.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="IHost.cs" />
-    <Compile Include="IHostServiceConfiguration.cs" />
-    <Compile Include="IHostServiceRunner.cs" />
+    <Compile Include="InstallConfiguration.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="WindowsServiceInstaller.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Content\Help.txt" />

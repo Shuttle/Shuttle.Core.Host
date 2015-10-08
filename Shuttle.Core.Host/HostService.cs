@@ -4,39 +4,36 @@ using Shuttle.Core.Infrastructure;
 
 namespace Shuttle.Core.Host
 {
-    public class HostService : ServiceBase
-    {
-	    private readonly IHost _host;
-	    private readonly IHostServiceConfiguration _hostServiceConfiguration;
+	public class HostService : ServiceBase
+	{
+		private readonly HostServiceConfiguration _hostServiceConfiguration;
 
-        public HostService(IHost host, IHostServiceConfiguration hostServiceConfiguration)
-        {
-			Guard.AgainstNull(host, "host");
+		public HostService(HostServiceConfiguration hostServiceConfiguration)
+		{
 			Guard.AgainstNull(hostServiceConfiguration, "hostServiceConfiguration");
 
-	        _host = host;
-	        _hostServiceConfiguration = hostServiceConfiguration;
+			_hostServiceConfiguration = hostServiceConfiguration;
 
-            ServiceName = hostServiceConfiguration.ServiceName;
-        }
+			ServiceName = hostServiceConfiguration.ServiceName;
+		}
 
-        protected override void OnStart(string[] args)
-        {
-            _host.Start();
+		protected override void OnStart(string[] args)
+		{
+			_hostServiceConfiguration.Host.Start();
 
-            Log.For(this).Information(string.Format("'{0}' service has started.", _hostServiceConfiguration.DisplayName));
-        }
+			Log.For(this).Information(string.Format("'{0}' service has started.", _hostServiceConfiguration.ServiceName));
+		}
 
-        protected override void OnStop()
-        {
-            var disposable = _host as IDisposable;
+		protected override void OnStop()
+		{
+			var disposable = _hostServiceConfiguration.Host as IDisposable;
 
-            if (disposable != null)
-            {
-                disposable.Dispose();
-            }
+			if (disposable != null)
+			{
+				disposable.Dispose();
+			}
 
-            Log.For(this).Information(string.Format("'{0}' service has stopped.", _hostServiceConfiguration.DisplayName));
-        }
-    }
+			Log.For(this).Information(string.Format("'{0}' service has stopped.", _hostServiceConfiguration.ServiceName));
+		}
+	}
 }

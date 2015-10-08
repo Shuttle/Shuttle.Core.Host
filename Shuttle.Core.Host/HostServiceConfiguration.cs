@@ -1,31 +1,28 @@
-using System;
-using Shuttle.Core.Infrastructure;
+﻿using Shuttle.Core.Infrastructure;
 
 namespace Shuttle.Core.Host
 {
-    public class HostServiceConfiguration : IHostServiceConfiguration
-    {
-	    private readonly Func<Type> _getHostTypeDelegate;
+	public class HostServiceConfiguration
+	{
+		public IHost Host { get; private set; }
 
-	    public HostServiceConfiguration(Func<Type> getHostTypeDelegate)
-	    {
-			Guard.AgainstNull(getHostTypeDelegate, "getHostTypeDelegate");
+		public HostServiceConfiguration(IHost host)
+		{
+			Guard.AgainstNull(host, "host");
 
-		    _getHostTypeDelegate = getHostTypeDelegate;
-	    }
+			Host = host;
+		}
 
-	    public string HostTypeAssemblyQualifiedName()
-	    {
-		    return _getHostTypeDelegate.Invoke().AssemblyQualifiedName;
-	    }
+		public string ServiceName { get; set; }
+		public string ConfigurationFileName { get; set; }
 
-	    public string ConfigurationFileName { get; set; }
-	    public string ServiceName { get; set; }
-        public string DisplayName { get; set; }
-        public string Description { get; set; }
-        public string Instance { get; set; }
-        public string UserName { get; set; }
-        public string Password { get; set; }
-        public bool StartManually { get; set; }
-    }
+		public static HostServiceConfiguration FromArguments(IHost host, Arguments arguments)
+		{
+			return new HostServiceConfiguration(host)
+			{
+				ServiceName = arguments.Get("serviceName", host.GetType().FullName),
+				ConfigurationFileName = arguments.Get("configurationFileName", string.Empty)
+			};
+		}
+	}
 }

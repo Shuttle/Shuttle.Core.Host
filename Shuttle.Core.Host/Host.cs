@@ -1,13 +1,10 @@
 using System;
-using System.Collections;
 using System.Configuration;
-using System.Configuration.Install;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.ServiceProcess;
 using System.Threading;
-using Microsoft.Win32;
 using Shuttle.Core.Infrastructure;
 
 namespace Shuttle.Core.Host
@@ -16,14 +13,13 @@ namespace Shuttle.Core.Host
 	{
 		private bool runServiceException;
 
-		public void RunService(IHost host, IHostServiceConfiguration hostServiceConfiguration)
+		public void RunService(HostServiceConfiguration hostServiceConfiguration)
 		{
-			Guard.AgainstNull(host, "host");
 			Guard.AgainstNull(hostServiceConfiguration, "hostServiceConfiguration");
 
 			try
 			{
-				var configurationFile = GetHostConfigurationFile(host, hostServiceConfiguration);
+				var configurationFile = GetHostConfigurationFile(hostServiceConfiguration);
 
 				if (!File.Exists(configurationFile))
 				{
@@ -66,14 +62,14 @@ namespace Shuttle.Core.Host
 				{
 					ServiceBase.Run(new ServiceBase[]
 					{
-						new HostService(host, hostServiceConfiguration)
+						new HostService(hostServiceConfiguration)
 					});
 				}
 				else
 				{
 					Console.CursorVisible = false;
 
-					ConsoleService(host, hostServiceConfiguration);
+					ConsoleService(hostServiceConfiguration);
 				}
 			}
 			catch (Exception ex)
@@ -96,16 +92,18 @@ namespace Shuttle.Core.Host
 			}
 		}
 
-		private void ConsoleService(IHost host, IHostServiceConfiguration hostServiceConfiguration)
+		private void ConsoleService(HostServiceConfiguration hostServiceConfiguration)
 		{
-			Guard.AgainstNull(host, "host");
 			Guard.AgainstNull(hostServiceConfiguration, "hostServiceConfiguration");
 
-			if (ServiceController.GetServices().Any(s => s.ServiceName == hostServiceConfiguration.ServiceName))
+			var serviceController =
+				ServiceController.GetServices().FirstOrDefault(s => s.ServiceName == hostServiceConfiguration.ServiceName);
+
+			if (serviceController != null)
 			{
 				ColoredConsole.WriteLine(ConsoleColor.Yellow,
 					"WARNING: Windows service '{0}' is running.  The display name is '{1}'.",
-					hostServiceConfiguration.ServiceName, hostServiceConfiguration.DisplayName);
+					hostServiceConfiguration.ServiceName, serviceController.DisplayName);
 				Console.WriteLine();
 			}
 
@@ -129,7 +127,7 @@ namespace Shuttle.Core.Host
 				e.Cancel = true;
 			});
 
-			host.Start();
+			hostServiceConfiguration.Host.Start();
 
 			Console.WriteLine();
 			ColoredConsole.WriteLine(ConsoleColor.Green, "Shuttle.Core.Host started for '{0}'.",
@@ -140,7 +138,7 @@ namespace Shuttle.Core.Host
 
 			WaitHandle.WaitAny(waitHandles);
 
-			var disposable = host as IDisposable;
+			var disposable = hostServiceConfiguration.Host as IDisposable;
 
 			if (disposable != null)
 			{
@@ -148,116 +146,13 @@ namespace Shuttle.Core.Host
 			}
 		}
 
-		private static string GetHostConfigurationFile(IHost host, IHostServiceConfiguration hostServiceConfiguration)
+		private static string GetHostConfigurationFile(HostServiceConfiguration hostServiceConfiguration)
 		{
 			return Path.Combine(
 				AppDomain.CurrentDomain.BaseDirectory,
 				string.IsNullOrEmpty(hostServiceConfiguration.ConfigurationFileName)
-					? string.Concat(host.GetType().Assembly.ManifestModule.Name, ".config")
+					? string.Concat(hostServiceConfiguration.Host.GetType().Assembly.ManifestModule.Name, ".config")
 					: hostServiceConfiguration.ConfigurationFileName);
-		}
-
-		public static void Install(IHostServiceConfiguration hostServiceConfiguration)
-		{
-			ColoredConsole.WriteLine(ConsoleColor.Green, "Installing service '{0}'.", hostServiceConfiguration.ServiceName);
-
-			using (var installer = new AssemblyInstaller(typeof (Host).Assembly, null))
-			{
-				IDictionary state = new Hashtable();
-
-				installer.UseNewContext = true;
-
-				try
-				{
-					installer.Install(state);
-					installer.Commit(state);
-
-					var ok = true;
-
-					var system = Registry.LocalMachine.OpenSubKey("System");
-
-					if (system != null)
-					{
-						var currentControlSet = system.OpenSubKey("CurrentControlSet");
-
-						if (currentControlSet != null)
-						{
-							var services = currentControlSet.OpenSubKey("Services");
-
-							if (services != null)
-							{
-								var service = services.OpenSubKey(hostServiceConfiguration.ServiceName, true);
-
-								if (service != null)
-								{
-									service.SetValue("Description", hostServiceConfiguration.Description);
-									service.SetValue("ImagePath",
-										string.Format("{0} /serviceName:\"{1}\"{2}{3}{4}",
-											service.GetValue("ImagePath"),
-											hostServiceConfiguration.ServiceName,
-											string.IsNullOrEmpty(hostServiceConfiguration.Instance)
-												? string.Empty
-												: string.Format(" /instance:\"{0}\"", hostServiceConfiguration.Instance),
-											string.IsNullOrEmpty(hostServiceConfiguration.ConfigurationFileName)
-												? string.Empty
-												: string.Format(" /configurationFileName:\"{0}\"", hostServiceConfiguration.ConfigurationFileName),
-											string.Format(" /hostType:\"{0}\"", hostServiceConfiguration.HostTypeAssemblyQualifiedName())));
-								}
-								else
-								{
-									ok = false;
-								}
-							}
-							else
-							{
-								ok = false;
-							}
-						}
-						else
-						{
-							ok = false;
-						}
-					}
-					else
-					{
-						ok = false;
-					}
-
-					if (!ok)
-					{
-						throw new ConfigurationErrorsException("Could not set registry values for the service.");
-					}
-				}
-				catch
-				{
-					installer.Rollback(state);
-
-					throw;
-				}
-			}
-		}
-
-		public static void Uninstall(IHostServiceConfiguration hostServiceConfiguration)
-		{
-			ColoredConsole.WriteLine(ConsoleColor.Green, "Uninstalling service '{0}'.", hostServiceConfiguration.ServiceName);
-
-			using (var installer = new AssemblyInstaller(typeof (Host).Assembly, null))
-			{
-				IDictionary state = new Hashtable();
-
-				installer.UseNewContext = true;
-
-				try
-				{
-					installer.Uninstall(state);
-				}
-				catch
-				{
-					installer.Rollback(state);
-
-					throw;
-				}
-			}
 		}
 	}
 }

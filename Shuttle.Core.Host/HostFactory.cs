@@ -41,9 +41,9 @@ namespace Shuttle.Core.Host
 				return type;
 			}
 
-			var hostTypes = ScanAssembliesForHostTypes();
+			var hostTypes = ScanAssembliesForHostTypes().ToList();
 
-			if (hostTypes.Count() == 0)
+			if (!hostTypes.Any())
 			{
 				throw new InvalidOperationException(string.Format(
 					"No type implementing IHost could be found in the scanned assemblies.\r\n " +

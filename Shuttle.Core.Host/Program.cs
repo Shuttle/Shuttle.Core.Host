@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using Shuttle.Core.Infrastructure;
@@ -37,24 +38,38 @@ namespace Shuttle.Core.Host
 				}
 
 				var hostFactory = new HostFactory();
-				Type hostType = null;
-
-				var hostServiceConfiguration = GetHostServiceConfiguration(arguments,
-					() => hostType ?? (hostType = hostFactory.GetHostType(arguments)));
 
 				if (!String.IsNullOrEmpty(uninstall))
 				{
-					Host.Uninstall(hostServiceConfiguration);
+					var serviceConfiguration = ServiceInstallerConfiguration.FromArguments(arguments);
+
+					if (serviceConfiguration.HostTypeRequired)
+					{
+						serviceConfiguration.ApplyHostType(hostFactory.GetHostType(arguments));
+					}
+
+					HostServiceInstaller.Assign(serviceConfiguration);
+
+					new WindowsServiceInstaller().Uninstall(serviceConfiguration);
 				}
 				else
 				{
 					if (!String.IsNullOrEmpty(install))
 					{
-						Host.Install(hostServiceConfiguration);
+						var installConfiguration = InstallConfiguration.FromArguments(arguments);
+
+						if (installConfiguration.HostTypeRequired)
+						{
+							installConfiguration.ApplyHostType(hostFactory.GetHostType(arguments));
+						}
+
+						HostServiceInstaller.Assign(installConfiguration);
+
+						new WindowsServiceInstaller().Install(installConfiguration);
 					}
 					else
 					{
-						new Host().RunService(hostFactory.Create(arguments), hostServiceConfiguration);
+						new Host().RunService(HostServiceConfiguration.FromArguments(hostFactory.Create(arguments), arguments));
 					}
 				}
 			}
@@ -75,55 +90,6 @@ namespace Shuttle.Core.Host
 					throw;
 				}
 			}
-		}
-
-		private static IHostServiceConfiguration GetHostServiceConfiguration(Arguments arguments,
-			Func<Type> getHostTypeDelegate)
-		{
-			var serviceName = arguments.Get("serviceName", String.Empty);
-			var instance = arguments.Get("instance", String.Empty);
-
-			if (String.IsNullOrEmpty(serviceName))
-			{
-				serviceName = getHostTypeDelegate.Invoke().FullName;
-			}
-
-			var displayName = arguments.Get("displayName", String.Empty);
-
-			if (String.IsNullOrEmpty(displayName))
-			{
-				displayName = string.Format("{0} ({1})", serviceName, getHostTypeDelegate.Invoke().Assembly.GetName().Version);
-			}
-
-			if (!String.IsNullOrEmpty(instance))
-			{
-				serviceName = String.Format("{0}${1}", serviceName, instance);
-			}
-
-			var description = arguments.Get("description", String.Empty);
-
-			if (String.IsNullOrEmpty(description))
-			{
-				description = String.Format("Shuttle.Core.Host for '{0}'.", displayName);
-			}
-
-			var configurationFileName = arguments.Get("configurationFileName", String.Empty);
-
-			var hostServiceConfiguration = new HostServiceConfiguration(getHostTypeDelegate)
-			{
-				Instance = instance,
-				ConfigurationFileName = configurationFileName,
-				ServiceName = serviceName,
-				DisplayName = displayName,
-				Description = description,
-				UserName = arguments.Get("username", String.Empty),
-				Password = arguments.Get("password", String.Empty),
-				StartManually = arguments.Get("startManually", false)
-			};
-
-			HostServiceInstaller.Assign(hostServiceConfiguration);
-
-			return hostServiceConfiguration;
 		}
 
 		private static void UnhandledException(object sender, UnhandledExceptionEventArgs e)
