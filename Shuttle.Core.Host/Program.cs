@@ -29,6 +29,11 @@ namespace Shuttle.Core.Host
 					return;
 				}
 
+				if (arguments.Contains("debug"))
+				{
+					Debugger.Launch();
+				}
+
 				var install = arguments.Get("install", String.Empty);
 				var uninstall = arguments.Get("uninstall", String.Empty);
 
@@ -48,8 +53,6 @@ namespace Shuttle.Core.Host
 						serviceConfiguration.ApplyHostType(hostFactory.GetHostType(arguments));
 					}
 
-					HostServiceInstaller.Assign(serviceConfiguration);
-
 					new WindowsServiceInstaller().Uninstall(serviceConfiguration);
 				}
 				else
@@ -62,8 +65,6 @@ namespace Shuttle.Core.Host
 						{
 							installConfiguration.ApplyHostType(hostFactory.GetHostType(arguments));
 						}
-
-						HostServiceInstaller.Assign(installConfiguration);
 
 						new WindowsServiceInstaller().Install(installConfiguration);
 					}

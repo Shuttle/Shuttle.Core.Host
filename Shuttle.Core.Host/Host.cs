@@ -11,7 +11,7 @@ namespace Shuttle.Core.Host
 {
 	public class Host
 	{
-		private bool runServiceException;
+		private bool _runServiceException;
 
 		public void RunService(HostServiceConfiguration hostServiceConfiguration)
 		{
@@ -32,7 +32,7 @@ namespace Shuttle.Core.Host
 
 				if (state == null)
 				{
-					throw new ApplicationException(string.Format("Could not obtain 's_initState' from ConfigurationManager."));
+					throw new ApplicationException("Could not obtain \'s_initState\' from ConfigurationManager.");
 				}
 
 				state.SetValue(null, 0);
@@ -41,7 +41,7 @@ namespace Shuttle.Core.Host
 
 				if (system == null)
 				{
-					throw new ApplicationException(string.Format("Could not obtain 's_configSystem' from ConfigurationManager."));
+					throw new ApplicationException("Could not obtain \'s_configSystem\' from ConfigurationManager.");
 				}
 
 				system.SetValue(null, null);
@@ -52,8 +52,7 @@ namespace Shuttle.Core.Host
 
 				if (current == null)
 				{
-					throw new ApplicationException(
-						string.Format("Could not obtain 's_current' from System.Configuration.ClientConfigPaths."));
+					throw new ApplicationException("Could not obtain 's_current' from System.Configuration.ClientConfigPaths.");
 				}
 
 				current.SetValue(null, null);
@@ -76,7 +75,7 @@ namespace Shuttle.Core.Host
 			{
 				if (Environment.UserInteractive)
 				{
-					runServiceException = true;
+					_runServiceException = true;
 
 					ColoredConsole.WriteLine(ConsoleColor.Red, ex.AllMessages());
 					ColoredConsole.WriteLine(ConsoleColor.Red, ex.StackTrace);
@@ -112,7 +111,7 @@ namespace Shuttle.Core.Host
 
 			Console.CancelKeyPress += ((sender, e) =>
 			{
-				if (!runServiceException)
+				if (!_runServiceException)
 				{
 					ColoredConsole.WriteLine(ConsoleColor.Green, "[stopping]");
 				}

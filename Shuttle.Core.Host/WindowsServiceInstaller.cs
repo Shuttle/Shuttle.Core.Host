@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Configuration.Install;
+using System.Runtime.Remoting.Messaging;
 using Microsoft.Win32;
 using Shuttle.Core.Infrastructure;
 
@@ -8,15 +9,20 @@ namespace Shuttle.Core.Host
 {
 	public class WindowsServiceInstaller
 	{
-		public void Install(InstallConfiguration installerConfiguration)
+		public static readonly string InstallConfigurationKey = "__InstallConfigurationKey__";
+		public static readonly string ServiceInstallerConfigurationKey = "__ServiceInstallerConfigurationKey__";
+
+		public void Install(InstallConfiguration installConfiguration)
 		{
-			Guard.AgainstNull(installerConfiguration, "configuration");
+			Guard.AgainstNull(installConfiguration, "configuration");
 
-			installerConfiguration.ApplyInvariants();
+			CallContext.LogicalSetData(InstallConfigurationKey, installConfiguration);
 
-			ColoredConsole.WriteLine(ConsoleColor.Green, "Installing service '{0}'.", installerConfiguration.InstancedServiceName());
+			installConfiguration.ApplyInvariants();
 
-			using (var installer = new AssemblyInstaller(installerConfiguration.ServiceAssembly ?? typeof (Host).Assembly, null))
+			ColoredConsole.WriteLine(ConsoleColor.Green, "Installing service '{0}'.", installConfiguration.InstancedServiceName());
+
+			using (var installer = new AssemblyInstaller(installConfiguration.ServiceAssembly ?? typeof (Host).Assembly, null))
 			{
 				IDictionary state = new Hashtable();
 
@@ -27,35 +33,44 @@ namespace Shuttle.Core.Host
 					installer.Install(state);
 					installer.Commit(state);
 
-					var serviceKey = GetServiceKey(installerConfiguration.InstancedServiceName());
+					var serviceKey = GetServiceKey(installConfiguration.InstancedServiceName());
 
-					serviceKey.SetValue("Description", installerConfiguration.Description);
+					serviceKey.SetValue("Description", installConfiguration.Description);
 					serviceKey.SetValue("ImagePath",
 						string.Format("{0} /serviceName:\"{1}\"{2}{3}{4}",
 							serviceKey.GetValue("ImagePath"),
-							installerConfiguration.ServiceName,
-							string.IsNullOrEmpty(installerConfiguration.Instance)
+							installConfiguration.ServiceName,
+							string.IsNullOrEmpty(installConfiguration.Instance)
 								? string.Empty
-								: string.Format(" /instance:\"{0}\"", installerConfiguration.Instance),
-							string.IsNullOrEmpty(installerConfiguration.ConfigurationFileName)
+								: string.Format(" /instance:\"{0}\"", installConfiguration.Instance),
+							string.IsNullOrEmpty(installConfiguration.ConfigurationFileName)
 								? string.Empty
-								: string.Format(" /configurationFileName:\"{0}\"", installerConfiguration.ConfigurationFileName),
-							string.Format(" /hostType:\"{0}\"", installerConfiguration.HostTypeAssemblyQualifiedName)));
+								: string.Format(" /configurationFileName:\"{0}\"", installConfiguration.ConfigurationFileName),
+							string.Format(" /hostType:\"{0}\"", installConfiguration.HostTypeAssemblyQualifiedName)));
 				}
 				catch
 				{
-					installer.Rollback(state);
+					try
+					{
+						installer.Rollback(state);
+					}
+					catch (InstallException ex)
+					{
+						ColoredConsole.WriteLine(ConsoleColor.DarkYellow, ex.Message);
+					}
 
 					throw;
 				}
 
-				ColoredConsole.WriteLine(ConsoleColor.Green, "Service '{0}' has been successfully installed.", installerConfiguration.InstancedServiceName());
+				ColoredConsole.WriteLine(ConsoleColor.Green, "Service '{0}' has been successfully installed.", installConfiguration.InstancedServiceName());
 			}
 		}
 
 		public void Uninstall(ServiceInstallerConfiguration installerConfiguration)
 		{
 			Guard.AgainstNull(installerConfiguration, "configuration");
+
+			CallContext.LogicalSetData(ServiceInstallerConfigurationKey, installerConfiguration);
 
 			installerConfiguration.ApplyInvariants();
 
@@ -73,7 +88,14 @@ namespace Shuttle.Core.Host
 				}
 				catch
 				{
-					installer.Rollback(state);
+					try
+					{
+						installer.Rollback(state);
+					}
+					catch (InstallException ex)
+					{
+						ColoredConsole.WriteLine(ConsoleColor.DarkYellow, ex.Message);
+					}
 
 					throw;
 				}

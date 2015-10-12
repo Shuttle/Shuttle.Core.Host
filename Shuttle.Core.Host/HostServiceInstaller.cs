@@ -1,33 +1,33 @@
 ﻿using System.Collections;
 using System.ComponentModel;
 using System.Configuration.Install;
-using System.Diagnostics;
+using System.Runtime.Remoting.Messaging;
 using System.ServiceProcess;
+using Shuttle.Core.Infrastructure;
 
 namespace Shuttle.Core.Host
 {
 	[RunInstaller(true)]
 	public class HostServiceInstaller : Installer
 	{
-		private static InstallConfiguration _installConfiguration;
-		private static ServiceInstallerConfiguration _serviceInstallerConfiguration;
-
 		public override void Install(IDictionary stateSaver)
 		{
-			if (_installConfiguration == null)
+			var configuration = (InstallConfiguration)CallContext.LogicalGetData(WindowsServiceInstaller.InstallConfigurationKey);
+
+			if (configuration == null)
 			{
-				throw new InstallException("No install configuration has been set.");
+				throw new InstallException("No install configuration could be located in the call context.");
 			}
 
 			var processInstaller = new ServiceProcessInstaller();
 
-			if (!string.IsNullOrEmpty(_installConfiguration.UserName)
+			if (!string.IsNullOrEmpty(configuration.UserName)
 			    &&
-			    !string.IsNullOrEmpty(_installConfiguration.Password))
+			    !string.IsNullOrEmpty(configuration.Password))
 			{
 				processInstaller.Account = ServiceAccount.User;
-				processInstaller.Username = _installConfiguration.UserName;
-				processInstaller.Password = _installConfiguration.Password;
+				processInstaller.Username = configuration.UserName;
+				processInstaller.Password = configuration.Password;
 			}
 			else
 			{
@@ -36,10 +36,10 @@ namespace Shuttle.Core.Host
 
 			var installer = new ServiceInstaller
 			{
-				DisplayName = _installConfiguration.DisplayName,
-				ServiceName = _installConfiguration.InstancedServiceName(),
-				Description = _installConfiguration.Description,
-				StartType = _installConfiguration.StartManually
+				DisplayName = configuration.DisplayName,
+				ServiceName = configuration.InstancedServiceName(),
+				Description = configuration.Description,
+				StartType = configuration.StartManually
 					? ServiceStartMode.Manual
 					: ServiceStartMode.Automatic
 			};
@@ -52,32 +52,24 @@ namespace Shuttle.Core.Host
 
 		public override void Uninstall(IDictionary savedState)
 		{
-			if (_serviceInstallerConfiguration == null)
+			var configuration = (ServiceInstallerConfiguration)CallContext.LogicalGetData(WindowsServiceInstaller.ServiceInstallerConfigurationKey);
+
+			if (configuration == null)
 			{
-				throw new InstallException("No uninstall configuration has been set.");
+				throw new InstallException("No uninstall configuration could be located in the call context.");
 			}
 
 			var processInstaller = new ServiceProcessInstaller();
 
 			var installer = new ServiceInstaller
 			{
-				ServiceName = _serviceInstallerConfiguration.InstancedServiceName()
+				ServiceName = configuration.InstancedServiceName()
 			};
 
 			Installers.Add(processInstaller);
 			Installers.Add(installer);
 
 			base.Uninstall(savedState);
-		}
-
-		public static void Assign(InstallConfiguration installConfiguration)
-		{
-			_installConfiguration = installConfiguration;
-		}
-
-		public static void Assign(ServiceInstallerConfiguration serviceInstallerConfiguration)
-		{
-			_serviceInstallerConfiguration = serviceInstallerConfiguration;
 		}
 	}
 }
