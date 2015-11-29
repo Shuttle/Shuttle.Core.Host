@@ -62,6 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArgumentsExtensions.cs" />
+    <Compile Include="HostEventLog.cs" />
     <Compile Include="HostServiceConfiguration.cs" />
     <Compile Include="ServiceInstallerConfiguration.cs" />
     <Compile Include="Host.cs" />

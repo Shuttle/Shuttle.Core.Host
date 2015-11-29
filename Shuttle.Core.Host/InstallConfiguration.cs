@@ -3,86 +3,81 @@ using Shuttle.Core.Infrastructure;
 
 namespace Shuttle.Core.Host
 {
-	public class InstallConfiguration : ServiceInstallerConfiguration
-	{
-		private string _displayName;
-		private string _description;
+    public class InstallConfiguration : ServiceInstallerConfiguration
+    {
+        private string _description;
+        private string _displayName;
 
-		public string DisplayName
-		{
-			get
-			{
-				return !string.IsNullOrEmpty(_displayName)
-					? _displayName
-					: InstancedServiceName();
-			}
-			set { _displayName = value; }
-		}
+        public InstallConfiguration()
+        {
+        }
 
-		public string Description
-		{
-			get
-			{
-				return !string.IsNullOrEmpty(_description)
-					? _description
-					: String.Format("Shuttle.Core.Host for '{0}'.", DisplayName);
-			}
-			set { _description = value; }
-		}
+        public InstallConfiguration(Arguments arguments)
+            : base(arguments)
+        {
+            DisplayName = arguments.Get("displayName", string.Empty);
+            Description = arguments.Get("description", string.Empty);
+            ConfigurationFileName = arguments.Get("configurationFileName", string.Empty);
+        }
 
-		public string ConfigurationFileName { get; set; }
-		public string HostTypeFullName { get; set; }
-		public string HostTypeAssemblyQualifiedName { get; set; }
-		public string UserName { get; set; }
-		public string Password { get; set; }
-		public bool StartManually { get; set; }
+        public string DisplayName
+        {
+            get
+            {
+                return !string.IsNullOrEmpty(_displayName)
+                    ? _displayName
+                    : InstancedServiceName();
+            }
+            set { _displayName = value; }
+        }
 
-		public new static InstallConfiguration FromArguments(Arguments arguments)
-		{
-			return new InstallConfiguration
-			{
-				ServiceName = arguments.Get("serviceName", String.Empty),
-				Instance = arguments.Get("instance", String.Empty),
-				DisplayName = arguments.Get("displayName", String.Empty),
-				Description = arguments.Get("description", String.Empty),
-				ConfigurationFileName = arguments.Get("configurationFileName", String.Empty)
-			};
-		}
+        public string Description
+        {
+            get
+            {
+                return !string.IsNullOrEmpty(_description)
+                    ? _description
+                    : string.Format("Shuttle.Core.Host for '{0}'.", DisplayName);
+            }
+            set { _description = value; }
+        }
 
-		public override void ApplyInvariants()
-		{
-			base.ApplyInvariants();
+        public string ConfigurationFileName { get; set; }
+        public string UserName { get; set; }
+        public string Password { get; set; }
+        public bool StartManually { get; set; }
 
-			Guard.Against<Exception>(string.IsNullOrEmpty(HostTypeFullName), "HostTypeFullName may not be empty.");
-			Guard.Against<Exception>(string.IsNullOrEmpty(HostTypeAssemblyQualifiedName),
-				"HostTypeAssemblyQualifiedName may not be empty.");
-		}
+        public override bool HostTypeRequired
+        {
+            get
+            {
+                return base.HostTypeRequired || string.IsNullOrEmpty(HostTypeAssemblyQualifiedName);
+            }
+        }
 
-		public string CommandLineArguments()
-		{
-			return string.Format("/serviceName:\"{0}\"{1}{2}",
-				InstancedServiceName(),
-				string.IsNullOrEmpty(ConfigurationFileName)
-					? string.Empty
-					: string.Format(" /configurationFileName:\"{0}\"", ConfigurationFileName),
-				string.Format(" /hostType:\"{0}\"", HostTypeAssemblyQualifiedName));
-		}
+        public override void ApplyInvariants()
+        {
+            base.ApplyInvariants();
 
-		public override bool HostTypeRequired
-		{
-			get
-			{
-				return base.HostTypeRequired || string.IsNullOrEmpty(HostTypeAssemblyQualifiedName) ||
-				       string.IsNullOrEmpty(HostTypeFullName);
-			}
-		}
+            Guard.Against<Exception>(string.IsNullOrEmpty(HostTypeAssemblyQualifiedName),
+                "HostTypeAssemblyQualifiedName may not be empty.");
+        }
 
-		public override void ApplyHostType(Type type)
-		{
-			base.ApplyHostType(type);
+        public string CommandLineArguments()
+        {
+            return string.Format("/serviceName:\"{0}\"{1}{2}",
+                InstancedServiceName(),
+                string.IsNullOrEmpty(ConfigurationFileName)
+                    ? string.Empty
+                    : string.Format(" /configurationFileName:\"{0}\"", ConfigurationFileName),
+                string.Format(" /hostType:\"{0}\"", HostTypeAssemblyQualifiedName));
+        }
 
-			HostTypeAssemblyQualifiedName = type.AssemblyQualifiedName;
-			HostTypeFullName = type.FullName;
-		}
-	}
+        public override void ApplyHostType(Type type)
+        {
+            base.ApplyHostType(type);
+
+            HostTypeAssemblyQualifiedName = type.AssemblyQualifiedName;
+        }
+    }
 }

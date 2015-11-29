@@ -21,7 +21,7 @@ namespace Shuttle.Core.Host
         {
             Guard.AgainstNull(arguments, "arguments");
 
-            var hostType = GetHostType(arguments);
+            var hostType = GetHostType(arguments.GetHostType());
 
             hostType.AssertDefaultConstructor(
                 string.Format("Service bus host type '{0}' implementing IHost must have a default constructor.", hostType.FullName));
@@ -29,10 +29,8 @@ namespace Shuttle.Core.Host
             return (IHost)Activator.CreateInstance(hostType);
         }
 
-        public Type GetHostType(Arguments arguments)
+        public Type GetHostType(string hostType)
         {
-            var hostType = arguments.Get("HostType", string.Empty);
-
             if (!string.IsNullOrEmpty(hostType))
             {
                 var type = Type.GetType(hostType, false);
@@ -48,6 +46,11 @@ namespace Shuttle.Core.Host
                 return type;
             }
 
+            return GetHostType();
+        }
+
+        public Type GetHostType()
+        {
             var hostTypes = ScanAssembliesForHostTypes().ToList();
 
             if (!hostTypes.Any())
@@ -67,7 +70,7 @@ namespace Shuttle.Core.Host
                     "The Shuttle.Core.Host doesn't support hosting of multiple IHost type implementations. " +
                     "Types found: " +
                     string.Join(", ",
-                                hostTypes.Select(e => e.AssemblyQualifiedName).ToArray()) +
+                        hostTypes.Select(e => e.AssemblyQualifiedName).ToArray()) +
                     " You may have some old assemblies in your runtime directory." +
                     " Try right-clicking your VS project, and selecting 'Clean'."
                     );

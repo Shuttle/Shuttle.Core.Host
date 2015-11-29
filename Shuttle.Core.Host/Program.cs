@@ -7,122 +7,107 @@ using Shuttle.Core.Infrastructure;
 
 namespace Shuttle.Core.Host
 {
-	public class Program
-	{
-		public static void Main(params string[] args)
-		{
-			if (Environment.UserInteractive)
-			{
-				Log.Assign(new ConsoleLog(typeof (Program)) {LogLevel = LogLevel.Trace});
-			}
+    public class Program
+    {
+        public static void Main(params string[] args)
+        {
+            if (Environment.UserInteractive)
+            {
+                Log.Assign(new ConsoleLog(typeof (Program)) {LogLevel = LogLevel.Trace});
+            }
 
-			AppDomain.CurrentDomain.UnhandledException += UnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += UnhandledException;
 
-			try
-			{
-				var arguments = new Arguments(args);
+            try
+            {
+                var arguments = new Arguments(args);
 
-				if (arguments.ShouldShowHelp())
-				{
-					ShowHelp();
+                if (arguments.ShouldShowHelp())
+                {
+                    ShowHelp();
 
-					return;
-				}
+                    return;
+                }
 
-				if (arguments.Contains("debug"))
-				{
-					Debugger.Launch();
-				}
+                if (arguments.Contains("debug"))
+                {
+                    Debugger.Launch();
+                }
 
-				var install = arguments.Get("install", String.Empty);
-				var uninstall = arguments.Get("uninstall", String.Empty);
+                var install = arguments.Get("install", string.Empty);
+                var uninstall = arguments.Get("uninstall", string.Empty);
 
-				if (!String.IsNullOrEmpty(install) && !String.IsNullOrEmpty(uninstall))
-				{
-					throw new ConfigurationErrorsException("Cannot specify /install and /uninstall together.");
-				}
+                if (!string.IsNullOrEmpty(install) && !string.IsNullOrEmpty(uninstall))
+                {
+                    throw new ConfigurationErrorsException("Cannot specify /install and /uninstall together.");
+                }
 
-				var hostFactory = new HostFactory();
+                if (!string.IsNullOrEmpty(uninstall))
+                {
+                    new WindowsServiceInstaller().Uninstall(arguments);
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(install))
+                    {
+                        new WindowsServiceInstaller().Install(arguments);
+                    }
+                    else
+                    {
+                        new Host().RunService(HostServiceConfiguration.FromArguments(new HostFactory().Create(arguments),
+                            arguments));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (Environment.UserInteractive)
+                {
+                    ColoredConsole.WriteLine(ConsoleColor.Red, ex.AllMessages());
 
-				if (!String.IsNullOrEmpty(uninstall))
-				{
-					var serviceConfiguration = ServiceInstallerConfiguration.FromArguments(arguments);
+                    Console.WriteLine();
+                    ColoredConsole.WriteLine(ConsoleColor.Gray, "Press any key to close...");
+                    Console.ReadKey();
+                }
+                else
+                {
+                    Log.Fatal(string.Format("[UNHANDLED EXCEPTION] : exception = {0}", ex.AllMessages()));
 
-					if (serviceConfiguration.HostTypeRequired)
-					{
-						serviceConfiguration.ApplyHostType(hostFactory.GetHostType(arguments));
-					}
+                    throw;
+                }
+            }
+        }
 
-					new WindowsServiceInstaller().Uninstall(serviceConfiguration);
-				}
-				else
-				{
-					if (!String.IsNullOrEmpty(install))
-					{
-						var installConfiguration = InstallConfiguration.FromArguments(arguments);
+        private static void UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            var ex = e.ExceptionObject as Exception;
 
-						if (installConfiguration.HostTypeRequired)
-						{
-							installConfiguration.ApplyHostType(hostFactory.GetHostType(arguments));
-						}
+            Log.Fatal(string.Format("[UNHANDLED EXCEPTION] : exception = {0}",
+                ex != null ? ex.AllMessages() : "(the exception object is null)"));
+        }
 
-						new WindowsServiceInstaller().Install(installConfiguration);
-					}
-					else
-					{
-						new Host().RunService(HostServiceConfiguration.FromArguments(hostFactory.Create(arguments), arguments));
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				if (Environment.UserInteractive)
-				{
-					ColoredConsole.WriteLine(ConsoleColor.Red, ex.AllMessages());
+        protected static void ShowHelp()
+        {
+            try
+            {
+                using (
+                    var stream =
+                        Assembly.GetCallingAssembly().GetManifestResourceStream("Shuttle.Core.Host.Content.Help.txt"))
+                {
+                    if (stream == null)
+                    {
+                        Console.WriteLine("Error retrieving help content stream.");
 
-					Console.WriteLine();
-					ColoredConsole.WriteLine(ConsoleColor.Gray, "Press any key to close...");
-					Console.ReadKey();
-				}
-				else
-				{
-					Log.Fatal(String.Format("[UNHANDLED EXCEPTION] : exception = {0}", ex.AllMessages()));
+                        return;
+                    }
 
-					throw;
-				}
-			}
-		}
-
-		private static void UnhandledException(object sender, UnhandledExceptionEventArgs e)
-		{
-			var ex = e.ExceptionObject as Exception;
-
-			Log.Fatal(String.Format("[UNHANDLED EXCEPTION] : exception = {0}",
-				ex != null ? ex.AllMessages() : "(the exception object is null)"));
-		}
-
-		protected static void ShowHelp()
-		{
-			try
-			{
-				using (
-					var stream =
-						Assembly.GetCallingAssembly().GetManifestResourceStream("Shuttle.Core.Host.Content.Help.txt"))
-				{
-					if (stream == null)
-					{
-						Console.WriteLine("Error retrieving help content stream.");
-
-						return;
-					}
-
-					Console.WriteLine(new StreamReader(stream).ReadToEnd());
-				}
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine(ex);
-			}
-		}
-	}
+                    Console.WriteLine(new StreamReader(stream).ReadToEnd());
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+    }
 }
