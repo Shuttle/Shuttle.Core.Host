@@ -1,20 +1,20 @@
 <?xml version="1.0"?>
 <package >
 	<metadata>
-		<id>shuttle-core-host</id>
+		<id>Shuttle.Core.Host</id>
 		<version>{semver}</version>
 		<authors>Eben Roux</authors>
 		<owners>Eben Roux</owners>
-		<licenseUrl>https://github.com/shuttle/shuttle-core-host/raw/master/LICENSE</licenseUrl>
-		<projectUrl>https://github.com/shuttle/shuttle-core-host</projectUrl>
-		<iconUrl>https://raw.githubusercontent.com/Shuttle/shuttle-core-host/master/.media/logo.png</iconUrl>
+		<licenseUrl>https://github.com/shuttle/Shuttle.Core.Host/raw/master/LICENSE</licenseUrl>
+		<projectUrl>https://github.com/shuttle/Shuttle.Core.Host</projectUrl>
+		<iconUrl>https://raw.githubusercontent.com/Shuttle/Shuttle.Core.Host/master/.media/logo.png</iconUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<description>The generic host component enables the hosting of IHost implementation as either a console application or a Windows service.</description>
 		<releaseNotes/>
 		<copyright>Copyright (c) {year}, Eben Roux</copyright>
-		<tags>shuttle shuttle-core windows-service</tags>
+		<tags>shuttle shuttle-core shuttle-core-host windows-service</tags>
 		<dependencies>
-			<dependency id="shuttle-core-infrastructure" version="{shuttle-core-infrastructure-version}" />
+			<dependency id="Shuttle.Core.Infrastructure" version="{Shuttle.Core.Infrastructure-version}" />
 		</dependencies>
 	</metadata>
 </package>
