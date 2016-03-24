@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text.RegularExpressions;
 
-namespace Shuttle.ESB.Host
+namespace Shuttle.Esb.Host
 {
     internal class Arguments
     {

@@ -51,7 +51,7 @@
         />
 
 		<ItemGroup>
-			<NugetBinaries Include="$(DeploymentFolder)\release\**\$(PackageAssembly).dll" />
+			<NugetBinaries Include="$(DeploymentFolder)\release\**\$(PackageAssembly).exe" />
 		</ItemGroup>
 
 		<Copy SourceFiles="package.nuspec" DestinationFolder="$(DeploymentFolder)\nuget\" SkipUnchangedFiles="false" />
