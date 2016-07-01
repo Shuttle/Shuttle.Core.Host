@@ -18,6 +18,8 @@ namespace Shuttle.Core.Host
             DisplayName = arguments.Get("displayName", string.Empty);
             Description = arguments.Get("description", string.Empty);
             ConfigurationFileName = arguments.Get("configurationFileName", string.Empty);
+            UserName = arguments.Get("username", string.Empty);
+            Password = arguments.Get("password", string.Empty);
         }
 
         public string DisplayName
