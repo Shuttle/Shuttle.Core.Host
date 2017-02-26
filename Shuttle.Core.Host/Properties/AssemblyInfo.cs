@@ -26,7 +26,7 @@ using System.Runtime.InteropServices;
 #endif
 
 [assembly: AssemblyVersion("3.2.15.0")]
-[assembly: AssemblyCopyright("Copyright © Eben Roux 2016")]
+[assembly: AssemblyCopyright("Copyright © Eben Roux 2017")]
 [assembly: AssemblyProduct("Shuttle.Core")]
 [assembly: AssemblyCompany("Shuttle")]
 [assembly: AssemblyConfiguration("Release")]
