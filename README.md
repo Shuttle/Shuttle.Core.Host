@@ -1,4 +1,4 @@
-! Shuttle.Core.Host
+# Shuttle.Core.Host
 
 ***Please note***: although this package is still available it has been superceded by [Shuttle.Core.ServiceHost](https://github.com/Shuttle/Shuttle.Core.ServiceHost).
 
