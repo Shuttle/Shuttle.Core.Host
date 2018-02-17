@@ -1,11 +1,16 @@
-Shuttle.Core.Host
-=================
+# Shuttle.Core.Host
+
+```
+PM> Install-Package Shuttle.Core.Host
+```
+
+**Please Note:** *This package is now obsolete.  Please make use of `Shuttle.Core.ServiceHost`*
 
 The generic host is an executable assembly used to execute code either within a console window or as a Windows service.  Since it can host your code while running in Visual Studio it makes debugging very easy.  No need to attach a debugger to a Windows service.
 
 A typical implementation would be the following:
 
-~~~ c#
+``` c#
 using System;
 using Shuttle.Core.Host;
 
@@ -29,13 +34,13 @@ namespace Domain.Server
 		}
 	}
 }
-~~~
+```
 
 When the generic host is executed it searches for all classes that implement the `IHost`.  It needs to find exactly 1 class implementing the interface else it fails with an exception.  If you *do* have more than one type implementing the interface you can specify the interface using an argument:
 
-~~~
+```
 /hostType="assembly qualified name"
-~~~
+```
 
 In order to debug applications that use the `IHost` interface you would simply need to set the `Shuttle.Core.Host.exe` as the startup application for your project:
 
@@ -47,7 +52,7 @@ Notice the `IDisposable` implementation.  Whenever a service is stopped, or `ctr
 
 The following command-line arguments are available and can be viewed by running `Shuttle.Core.Host /?`:
 
-~~~
+```
 	[/install [/serviceName]]	
 		- install the service
 		
@@ -78,7 +83,7 @@ The following command-line arguments are available and can be viewed by running 
 	- or -
 	
 	[/uninstall [/serviceName] [/instance]]	
-~~~		
+```		
 
 ## IHost
 As mentioned, if no `/hostType` is specified the folder the `Shuttle.Core.Host.exe` is in will be scanned for the class implementing `IHost`.  Should no class, or more than 1 class, be located an exception will be raised.
@@ -86,9 +91,9 @@ As mentioned, if no `/hostType` is specified the folder the `Shuttle.Core.Host.e
 ## Service Name
 If no `/serviceName` is specified the full name of the service bus host type will be used along with the version number of the assembly it is contained within.
 
-~~~
+```
 	Shuttle.Application.Server.Host (1.0.0.0)
-~~~
+```
 
 ## Display Name
 The default for the `/displayName` is the same value as `/serviceName`, and the description defaults to a generic service bus host description.
@@ -97,16 +102,16 @@ The default for the `/displayName` is the same value as `/serviceName`, and the 
 
 If you set the `/serviceName` and/or `/instance` during installation you will need to specify them when uninstalling as well, e.g.:
 
-~~~
+```
 	Shuttle.Core.Host.exe 
 		/uninstall 
 		/serviceName:"Shuttle.Application.Server" 
 		/instance:"Instance5"
-~~~
+```
 
 ## Example
 
-~~~
+```
 Shuttle.Core.Host.exe 
 	/install 
 	/serviceName:"Shuttle.Application.Server" 
@@ -115,13 +120,13 @@ Shuttle.Core.Host.exe
 	/hostType:"QualifiedNamespace.Host, AssemblyName"
 	/username:"domain\hostuser"
 	/password:"p@ssw0rd!"
-~~~
+```
 
 # API
 
 It is also possible to install and uninstall services that make use of `shuttle-core-host` by using the `WindowsServiceInstaller` class:
 
-~~~ c#
+``` c#
 var windowsServiceInstaller = new WindowsServiceInstaller();
 
 var installConfiguration = new InstallConfiguration
@@ -139,4 +144,4 @@ var serviceInstallerConfiguration = new ServiceInstallerConfiguration
 };
 
 windowsServiceInstaller.Uninstall(serviceInstallerConfiguration);
-~~~
+```
